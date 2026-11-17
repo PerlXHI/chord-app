@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chord Progression Generator - PerlX</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0c0d0e; color: #e5e7eb; padding: 24px 16px; display: flex; flex-direction: column; align-min-height: 100vh; }}; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #1f2937; flex-wrap: wrap; gap: 12px; }
+    h1 { font-size: 24px; font-weight: 800; color: #fff; }
+    .badge { background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; background: #141618; padding: 16px; border-radius: 12px; border: 1px solid #24272c; margin-bottom: 24px; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 11px; text-transform: uppercase; color: #9ca3af; font-weight: 600; letter-}c1f24; border: 1px solid #2e333b; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 13px; outline: none; cursor: pointer; }
+    select:focus { border-color: #f59e0b; }
+    .actions { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    button { cursor: pointer; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 600; font-size: 14px; transition: 0.15s ease; }
+    .btn-primary { background: #f59e0b; color: #0c0d0e; }
+    .btn-primary:hover { background: #fbbf24; }
+    .btn-play { background: #10b981; color: white; }
+    .btn-play.playing { background: #ef4444; }
+    .btn-secondary { background: #24272c; color: #d1d5db; border: 1px solid #374151; }
+    .btn-secondary:hover { background: #2d3238; }
+    .chords-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .chord-card { background: #141618; border: 1px solid #24272c; border-radius: 10px; padding: 14px; position: relative; transition: all 0.2s; }
+    .chord-card.active { border-color: #f59e0b; background: rgba(245, 158, 11, 0.08); transform: translateY(-2px); }
+    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .roman { font-size: 10px; font-background: #24272c; padding: 2px 6px; border-radius: 4px; color: #9ca3af; }
+    .lock-btn { background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.6; }
+    .lock-btn.locked { opacity: 1; }
+    .chord-title { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .chord-notes { font-size: 11px; color: #9ca3af; font-family: monospace; }
+    .fl-hint {border: 1px solid #24272c;border-radius: 10px; font-size: 12px; color: #9ca3af; line-height: 1.5; }
+    .fl-hint strong { color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <span class="badge">FL STUDIO READY</span>
+        <h1 style="margin-top: 4px;">Chord Progression Generator</h1>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="playBtn" class="btn-play">Play Chords</button>
+        <button id="downloadMidiBtn" class="btn-primary">Download MIDI (.mid)</button>
+      </div>
+    </header>
+
+    <div class="controls">
+      <!-- Root Key sekarang tertulis lengkap di HTML, tidak akan pernah blank -->
+      <div class="control-group">
+        <label>Root Key</label>
+        <select id="rootKeySelect">
+          <option value="0" selected>C</option>
+          <option value="1">C# / Db</option>
+          <option value="2">D</option>
+          <option value="3">D# / Eb</option>
+          <option value="4">E</option>
+          <option value="5">F</option>
+          <option value="6">F# / Gb</option>
+          <option value="7">G</option>
+          <option value="8">G# / Ab</option>
+          <option value="9">A</option>
+          <option value="10">A# / Bb</option>
+          <option value="11">B</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Scale / Mode</label>
+        <select id="scaleSelect">
+          <option value="Major" selected>Major</option>
+          <option value="NaturalMinor">Natural Minor</option>
+          <option value="Dorian">Dorian</option>
+          <option value="HarmonicMinor">Harmonic Minor</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Genre / Style</label>
+        <select id="genreSelect">
+          <option value="Pop" selected>Pop</option>
+          <option value="EDM">EDM / House</option>
+          <option value="LoFi">Lo-Fi Hip-Hop</option>
+          <option value="Trap">Trap / Dark</option>
+          <option value="RnB">R&B / Neo-Soul</option>
+          <option value="Jazz">Jazz Standards</option>
+          <option value="Rock">Rock / Grunge</option>
+          <option value="Anime">Anime / J-Pop</option>
+          <option value="Cinematic">Cinematic</option>
+          <option value="Gospel">Gospel / Soul</option>
+          <option value="Blues">12-Bar Blues</option>
+          <option value="Flamenco">Flamenco / Andalusian</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Length (Bars)</label>
+        <select id="barsSelect">
+          <option value="2">2 Bars</option>
+          <option value="4" selected>4 Bars (Standard)</option>
+          <option value="8">8 Bars (Extended)</option>
+          <option value="12">12 Bars (Full Blues)</option>
+          <option value="16">16 Bars (Full Section)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Harmony Depth</label>
+        <select id="complexitySelect">
+          <option value="0">Triads (Simple)</option>
+          <option value="1" selected>7th Chords</option>
+          <option value="2">9th / Extended</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>BPM (<span id="bpmVal">120</span>)</label>
+        <input type="range" id="bpmSlider" min="50" max="180" value="120">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="generateBtn" class="btn-secondary">Regenerate</button>
+      <button id="transposeDownBtn" class="btn-secondary">-1 Semitone</button>
+      <button id="transposeUpBtn" class="btn-secondary">+1 Semitone</button>
+    </div>
+
+    <div class="chords-grid" id="chordGrid"></div>
+
+    <div class="fl-hint">
+      <strong>Tips FL Studio:</strong> File MIDI yang diunduh mencakup track akor polifonik (Channel 1) dan track bass root oktaf rendah (Channel 2). Anda bisa langsung men-drag file ini ke Piano Roll channel instrumen apa saja di FL Studio.
+    </div>
+  </div>
+
+  <script>
+    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const SCALES = {
+      Major: [0, 2, 4, 5, 7, 9, 11],
+      NaturalMinor: [0, 2, 3, 5, 7, 8, 10],
+      Dorian: [0, 2, 3, 5, 7, 9, 10],
+      HarmonicMinor: [0, 2, 3, 5, 7, 8, 11]
+    };
+    const GENRE_TEMPLATES = {
+      Pop: [["I", "V", "vi", "IV"], ["vi", "IV", "I", "V"], ["I", "IV", "vi", "V"]],
+      ED"IV", "I", "V"], ["i", "VI", "III", "VII"], ["IV", "I", "V", "vi"]],
+      LoFi: [["ii", "V", "I", "vi"], ["i", "iv", "v", "i"], ["I", "IV", "iii", "vi"]],
+      Trap: [["i", "VI", "i", "V"], ["i", "iv", "v", "i"], ["i", "VII", "VI", "V"]],
+      RnB: [["ii", "V", "I", "VI"], ["I", "vi", "ii", "V"], ["I", "III", "vi", "IV"]],
+      Jazz: [["ii", "V", "I", "VI"], ["iii", "vi", "ii", "V"], ["I", "IV", "iii", "VI"]],
+      Rock: [["I", "V", "vi", "IV"], ["I", "IV", "V", "IV"], ["I", "bVII", "IV", "I"]],
+      Anime: [["IV", "V", "iii", "vi"], ["IV", "III", "vi", "I"], ["ii", "V", "I", "vi"]],
+      Cinematic: [["i", "VI", "III", "VII"], ["i", "v", "VI", "iv"], ["i", "IV", "i", "V"]],
+      Gospel: [["I", "I", "IV", "iv"], ["I", "vi", "ii", "V"], ["I", "III", "vi", "II"]],
+      Blues: [["I", "I", "I", "I", "IV", "IV", "I", "I", "V", "IV", "I", "V"]],
+      Flamenco: [["i", "VII", "VI", "V"], ["i", "iv", "VI", "V"], ["iv", "III", "II", "I"]]
+    };
+    const CHORD_INTERVALS = {
+      maj: [0, 4, 7], min: [0, 3, 7], dim: [0, 3, 6],
+      maj7: [0, 4, 7, 11], m7: [0, 3, 7, 10], dom7: [0, 4, 7, 10],
+      maj9: [0, 4, 7, 11, 14], m9: [0, 3, 7, 10, 14], dom9: [0, 4, 7, 10, 14]
+    };
+
+    let chords = [];
+    let isPlaying = false;
+    let audioCtx = null;
+    let playTimer = null;
+
+    function generateChords() {
+      const rootSelectElem = document.getElementById("rootKeySelect");
+      const rootKey = parseInt(rootSelectElem ? rootSelectElem.value : "0") || 0;
+      const scale = SCALES[document.getElementById("scaleSelect").value] || SCALES.Major;
+      const genre = document.getElementById("genreSelect").value || "Pop";
+      const targetBars = parseInt(document.getElementById("barsSelect").value) || 4;
+      const complexity = parseInt(document.getElementById("complexitySelect").value) || 1;
+
+      const templates = GENRE_TEMPLATES[genre] || GENRE_TEMPLATES["Pop"];
+      const baseTemplate = templates[Math.floor(Math.random() * templates.length)];
+
+      let expandedTokens = [];
+      while (expandedTokens.length < targetBars) {
+        for (let t of baseTemplate) {
+          if (expandedTokens.length < targetBars) expandedTokens.push(t);
+        }
+      }
+
+      const newChords = expandedTokens.map((token, idx) => {
+        if (chords[idx] && chords[idx].locked) return chords[idx];
+
+        let degree = 0;
+        if (token.startsWith("ii") || token.startsWith("II")) degree = 1;
+        else if (token.startsWith("iii") || token.startsWith("III")) degree = 2;
+        else if (token.startsWith("iv") || token.startsWith("IV")) degree = 3;
+        else if (token.startsWith("vi") || token.startsWith("VI")) degree = 5;
+        else if (token.startsWith("vii") || token.startsWith("VII")) degree = 6;
+        else if (token.startsWith("v") || token.startsWith("V")) degree = 4;
+
+        const interval = scale[degree % scale.length];
+        const rootMidi = 48 + rootKey + interval;
+        const noteName = NOTE_NAMES[(rootKey + interval) % 12];
+
+        let quality = "maj";
+        const isMinorDegree = (token[0] >= 'a' && token[0] <= 'z');
+        if (complexity === 0) {
+          quality = isMinorDegree ? "min" : "maj";
+        } else if (complexity === 1) {
+          quality = isMinorDegree ? "m7" : (degree === 4 || genre === "Blues" ? "dom7" : "maj7");
+        } else {
+          quality = isMinorDegree ? "m9" : (degree === 4 || genre === "Blues" ? "dom9" : "maj9");
+        }
+
+        const formula = CHORD_INTERVALS[quality] || CHORD_INTERVALS.maj;
+        let notes = formula.map(semi => rootMidi + semi);
+
+        return {
+          rootMidi,
+          rootName: noteName,
+          quality,
+          roman: token,
+          notes,
+          locked: false
+        };
+      });
+
+      chords = newChords;
+      renderCards();
+    }
+
+    function renderCards() {
+      const grid = document.getElementById("chordGrid");
+      if (!grid) return;
+      grid.innerHTML = "";
+      chords.forEach((c, idx) => {
+        const card = document.createElement("div");
+        card.className = "chord-card";
+        card.id = `card-${idx}`;
+        card.innerHTML = `
+          <div class="card-top">
+            <span class="roman">B${idx+1} ${c.roman}</span>
+            <button class="lock-btn ${c.locked ? 'locked' : ''}" onclick="toggleLock(${idx})">${c.locked ? '🔒' : '🔓'}</button>
+          </div>
+          <div class="chord-title">${c.rootName}<span style="font-size:14px; color:#f59e0b;">${c.quality}</span></div>
+          <div class="chord-notes">${c.notes.map(n => NOTE_NAMES[n % 12]).join(" ")}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    window.toggleLock = function(idx) {
+      if (chords[idx]) {
+        chords[idx].locked = !chords[idx].locked;
+        renderCards();
+      }
+    };
+
+    function playProgression() {
+      if (isPlaying) {
+        if (audioCtx) audioCtx.close();
+        audioCtx = null;
+        clearTimeout(playTimer);
+        isPlaying = false;
+        document.getElementById("playBtn").textContent = "Play Chords";
+        document.getElementById("playBtn").classList.remove("playing");
+        document.querySelectorAll(".chord-card").forEach(el => el.classList.remove("active"));
+        return;
+      }
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      isPlaying = true;
+      document.getElementById("playBtn").textContent = "Stop Preview";
+      document.getElementById("playBtn").classList.add("playing");
+
+      const bpm = parseInt(document.getElementById("bpmSlider").value);
+      const barDuration = (60 / bpm) * 4;
+      const now = audioCtx.currentTime + 0.05;
+
+      chords.forEach((c, i) => {
+        const start = now + i * barDuration;
+        c.notes.forEach(note => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const freq = 440 * Math.pow(2, (note - 69) / 12);
+
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(freq, start);
+
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.06, start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.00001, start + barDuration * 0.95);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(start);
+          osc.stop(start + barDuration);
+        });
+
+        // Bass Root
+        const bassOsc = audioCtx.createOscillator();
+        const bassGain = audioCtx.createGain();
+        bassOsc.type = "sine";
+        bassOsc.frequency.setValueAtTime(440 * Math.pow(2, ((c.notes[0] - 12) - 69) / 12), start);
+        bassGain.gain.setValueAtTime(0.12, start);
+        bassGain.gain.exponentialRampToValueAtTime(0.0001, start + barDuration);
+        bassOsc.connect(bassGain);
+        bassGain.connect(audioCtx.destination);
+        bassOsc.start(start);
+        bassOsc.stop(start + barDuration);
+
+        setTimeout(() => {
+          document.querySelectorAll(".chord-card").forEach(el => el.classList.remove("active"));
+          const activeCard = document.getElementById(`card-${i}`);
+          if (activeCard) activeCard.classList.add("active");
+        }, (start - now) * 1000);
+      });
+
+      playTimer = setTimeout(() => {
+        playProgression();
+      }, chords.length * barDuration * 1000);
+    }
+
+    function downloadMidi() {
+      const bpm = parseInt(document.getElementById("bpmSlider").value);
+      const ticksPerQuarter = 480;
+      const mpqn = Math.round(60000000 / bpm);
+
+      function toVlq(val) {
+        let buf = [val & 0x7F];
+        while (val >>= 7) buf.push((val & 0x7F) | 0x80);
+        return buf.reverse();
+      }
+
+      let t0 = [
+        0x00, 0xFF, 0x51, 0x03, (mpqn >> 16) & 0xFF, (mpqn >> 8) & 0xFF, mpqn & 0xFF,
+        0x00, 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08,
+        0x00, 0xFF, 0x2F, 0x00
+      ];
+
+      let events = [];
+      let curTick = 0;
+      const barTicks = ticksPerQuarter * 4;
+
+      chords.forEach(c => {
+        c.notes.forEach(n => {
+          events.push({ time: curTick, data: [0x90, n, 85] });
+          events.push({ time: curTick + barTicks - 20, data: [0x80, n, 0x00] });
+        });
+        const bass = c.notes[0] - 12;
+        events.push({ time: curTick, data: [0x91, bass, 100] });
+        events.push({ time: curTick + barTicks - 20, data: [0x81, bass, 0x00] });
+        curTick += barTicks;
+      });
+
+      events.sort((a, b) => a.time - b.time);
+
+      let t1 = [];
+      let lastTime = 0;
+      events.forEach(ev => {
+        t1.push(...toVlq(ev.time - lastTime), ...ev.data);
+        lastTime = ev.time;
+      });
+      t1.push(0x00, 0xFF, 0x2F, 0x00);
+
+      const header = [
+        0x4D, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x02,
+        (ticksPerQuarter >> 8) & 0xFF, ticksPerQuarter & 0xFF,
+        0x4D, 0x54, 0x72, 0x6B,
+        (t0.length >> 24) & 0xFF, (t0.length >> 16) & 0xFF, (t0.length >> 8) & 0xFF, t0.length & 0xFF, ...t0,
+        0x4D, 0x54, 0x72, 0x6B,
+        (t1.length >> 24) & 0xFF, (t1.length >> 16) & 0xFF, (t1.length >> 8) & 0xFF, t1.length & 0xFF, ...t1
+      ];
+
+      const blob = new Blob([new Uint8Array(header)], { type: "audio/midi" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Progression_${chords.length}Bars_${bpm}BPM.mid`;
+      a.click();
+    }
+
+    // Inisialisasi aman setelah DOM siap
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("generateBtn").addEventListener("click", generateChords);
+      document.getElementById("rootKeySelect").addEventListener("change", generateChords);
+      document.getElementById("scaleSelect").addEventListener("change", generateChords);
+      document.getElementById("barsSelect").addEventListener("change", generateChords);
+      document.getElementById("genreSelect").addEventListener("change", generateChords);
+      document.getElementById("complexitySelect").addEventListener("change", generateChords);
+      document.getElementById("playBtn").addEventListener("click", playProgression);
+      document.getElementById("downloadMidiBtn").addEventListener("click", downloadMidi);
+
+      document.getElementById("bpmSlider").addEventListener("input", (e) => {
+        document.getElementById("bpmVal").textContent = e.target.value;
+      });
+
+      document.getElementById("transposeUpBtn").addEventListener("click", () => {
+        chords.forEach(c => { c.notes = c.notes.map(n => n + 1); });
+        renderCards();
+      });
+
+      document.getElementById("transposeDownBtn").addEventListener("click", () => {
+        chords.forEach(c => { c.notes = c.notes.map(n => n - 1); });
+        renderCards();
+      });
+
+      // Generate langsung pertama kali buka
+      generateChords();
+    });
+  </script>
+</body>
+</html>
